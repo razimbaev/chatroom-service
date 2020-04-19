@@ -1,6 +1,6 @@
-package com.mychatroom.chatroom.model;
+package com.mychatroom.chatroom.dto;
 
-public class MessageInfo {
+public class MessageDTO {
     private String content;
     private String userId;
     private long timestamp;
