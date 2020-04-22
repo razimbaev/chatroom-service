@@ -3,21 +3,41 @@ package com.mychatroom.chatroom.event;
 import java.util.*;
 
 public class InMemoryUser {
+    private static long TIME_UNTIL_USERNAME_CHANGE_ALLOWED = 24 * 60 * 60 * 1000;
+
     private String userSessionId, username;
     private Map<String, ChatroomSubscription> socketSessionToChatroomMap;
+    private long lastTimeChangedUsername;
 
     public InMemoryUser(String sessionId) {
         this.userSessionId = sessionId;
         this.username = "";
         this.socketSessionToChatroomMap = new HashMap<>();
+        this.lastTimeChangedUsername = 0;
     }
 
     public String getUsername() {
         return username;
     }
 
-    public void setUsername(String username) {
+    public boolean setUsername(String username) {
+        if (!this.isUsernameChangedMoreThanDayAgo()) {
+            return false;
+        }
         this.username = username;
+        this.lastTimeChangedUsername = System.currentTimeMillis();
+        return true;
+    }
+
+    private boolean isUsernameChangedMoreThanDayAgo() {
+        long currentTimeInMillis = System.currentTimeMillis();
+        return currentTimeInMillis > this.getTimeWhenUsernameChangeAllowed();
+    }
+
+    public long getTimeWhenUsernameChangeAllowed() {
+        if (this.lastTimeChangedUsername == 0)
+            return 0;
+        return this.lastTimeChangedUsername + TIME_UNTIL_USERNAME_CHANGE_ALLOWED;
     }
 
     public String getUserSessionId() {
@@ -53,7 +73,7 @@ public class InMemoryUser {
 
     public boolean isChatroomInSocketSession(String chatroom) {
         for (ChatroomSubscription socketChatroom : this.socketSessionToChatroomMap.values()) {
-            if (chatroom.equals(socketChatroom.chatroom))
+            if (socketChatroom != null && chatroom.equals(socketChatroom.chatroom))
                 return true;
         }
         return false;
@@ -62,7 +82,8 @@ public class InMemoryUser {
     public Collection<String> getChatrooms() {
         List<String> chatrooms = new ArrayList<>();
         for (ChatroomSubscription chatroomSub : this.socketSessionToChatroomMap.values()) {
-            chatrooms.add(chatroomSub.chatroom);
+            if (chatroomSub != null)
+                chatrooms.add(chatroomSub.chatroom);
         }
         return chatrooms;
     }
