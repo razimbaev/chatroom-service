@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -79,6 +80,9 @@ public class MessageController {
     public void updateChatUsers(String chatroomName, InMemoryUser user, UserChatroomEvent event) {
         this.simpMessagingTemplate.convertAndSend("/topic/chatroom/" + chatroomName + "/users",
                 new UserChatroomUpdateDTO(user.getUsername(), event));
+
+        int numUsers = MockDB.roomToUsersMap.getOrDefault(chatroomName, new HashSet<>()).size();
+        simpMessagingTemplate.convertAndSend("/topic/home/user", new UserHomeDTO(chatroomName, numUsers));
     }
 
     public void updateChatUsers(String chatroomName, String oldName, String newName) {
@@ -86,9 +90,17 @@ public class MessageController {
                 new UserChatroomUpdateDTO(oldName, newName));
     }
 
-    @SubscribeMapping("/chatrooms")
-    public Set<String> getAllChatrooms() {
-        return MockDB.roomToMessageMap.keySet();
+    @SubscribeMapping("/home/init")
+    public List<ChatroomHomeDTO> getAllChatrooms() {
+        List<ChatroomHomeDTO> chatroomHomeData = new ArrayList<>();
+
+        Set<String> chatrooms = MockDB.roomToUsersMap.keySet();
+        for (String chatroom : chatrooms) {
+            int numUser = MockDB.roomToUsersMap.getOrDefault(chatroom, new HashSet<>()).size();
+            List<MessageDTO> messages = MockDB.roomToMessageMap.getOrDefault(chatroom, new ArrayList<>());
+            chatroomHomeData.add(new ChatroomHomeDTO(chatroom, numUser, messages));
+        }
+        return chatroomHomeData;
     }
 
     @SubscribeMapping("/chatroom/{chatroomName}/init")
@@ -151,6 +163,8 @@ public class MessageController {
             List<MessageDTO> messages = MockDB.roomToMessageMap.get(chatroomName);
             messages.add(message);
         }
+
+        simpMessagingTemplate.convertAndSend("/topic/home/message", new MessageHomeDTO(message, chatroomName));
 
         return message;
     }
