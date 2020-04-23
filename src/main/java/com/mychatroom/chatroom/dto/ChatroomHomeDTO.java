@@ -9,6 +9,12 @@ public class ChatroomHomeDTO {
     private int numUsers;
     private List<MessageDTO> mostRecentMessages;
 
+    public ChatroomHomeDTO(String chatroom) {
+        this.chatroom = chatroom;
+        this.numUsers = 0;
+        this.mostRecentMessages = new ArrayList<>();
+    }
+
     public ChatroomHomeDTO(String chatroom, int numUsers, List<MessageDTO> mostRecentMessages) {
         this.chatroom = chatroom;
         this.numUsers = numUsers;

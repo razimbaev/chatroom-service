@@ -41,6 +41,8 @@ public class MessageController {
         MockDB.roomToMessageMap.put(newChatroom, new ArrayList<>());
         MockDB.roomToUsersMap.put(newChatroom, new HashSet<>());
 
+        simpMessagingTemplate.convertAndSend("/topic/home/chatroom", new ChatroomHomeDTO(newChatroom));
+
         return new ChatroomCreateDTO();
     }
 
