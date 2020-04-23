@@ -24,6 +24,14 @@ public class MessageController {
 
     // TODO - maybe add pagination where needed and consider using SimpUserRegistry
 
+    @SubscribeMapping("/mychatrooms")
+    public Set<String> getMyChatrooms(SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionAttributes().get("sessionId").toString();
+        InMemoryUser user = MockDB.sessionToUserMap.get(sessionId);
+
+        return user.getMyChatrooms();
+    }
+
     @SubscribeMapping("/chatroom/create/{newChatroom}")
     public ChatroomCreateDTO createNewChatroom(@DestinationVariable String newChatroom) {
         if (newChatroom == null || newChatroom.isEmpty()) {
@@ -182,7 +190,8 @@ public class MessageController {
     @SendTo("/topic/chatroom/{chatroomName}")
     public MessageDTO sendMessage(@DestinationVariable String chatroomName, MessageDTO message, SimpMessageHeaderAccessor headerAccessor) throws Exception {
         String sessionId = headerAccessor.getSessionAttributes().get("sessionId").toString();
-        String username = MockDB.sessionToUserMap.get(sessionId).getUsername();
+        InMemoryUser user = MockDB.sessionToUserMap.get(sessionId);
+        String username = user.getUsername();
         if (username == null || username.isEmpty())
             throw new Exception("Messages should not be sent without a user");  // TODO - maybe find better way to handle this
         message.setUserId(username);    // prevent username spoofing
@@ -193,6 +202,8 @@ public class MessageController {
         }
 
         simpMessagingTemplate.convertAndSend("/topic/home/message", new MessageHomeDTO(message, chatroomName));
+
+        user.addToMyChatrooms(chatroomName);
 
         return message;
     }

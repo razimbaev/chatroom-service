@@ -8,12 +8,22 @@ public class InMemoryUser {
     private String userSessionId, username;
     private Map<String, ChatroomSubscription> socketSessionToChatroomMap;
     private long lastTimeChangedUsername;
+    private Set<String> myChatrooms;
 
     public InMemoryUser(String sessionId) {
         this.userSessionId = sessionId;
         this.username = "";
         this.socketSessionToChatroomMap = new HashMap<>();
         this.lastTimeChangedUsername = 0;
+        this.myChatrooms = new LinkedHashSet<>() {
+            // maintains a LRU order
+            @Override
+            public boolean add(String e) {
+                boolean wasThere = remove(e);
+                super.add(e);
+                return !wasThere;
+            }
+        };
     }
 
     public String getUsername() {
@@ -86,6 +96,14 @@ public class InMemoryUser {
                 chatrooms.add(chatroomSub.chatroom);
         }
         return chatrooms;
+    }
+
+    public void addToMyChatrooms(String chatroom) {
+        this.myChatrooms.add(chatroom);
+    }
+
+    public Set<String> getMyChatrooms() {
+        return myChatrooms;
     }
 
     // TODO - check to make sure this equals and hashcode method is sufficient
