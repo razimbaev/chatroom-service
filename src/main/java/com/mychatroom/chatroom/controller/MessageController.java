@@ -24,6 +24,32 @@ public class MessageController {
 
     // TODO - maybe add pagination where needed and consider using SimpUserRegistry
 
+    @SubscribeMapping("/chatroom/create/{newChatroom}")
+    public ChatroomCreateDTO createNewChatroom(@DestinationVariable String newChatroom) {
+        if (newChatroom == null || newChatroom.isEmpty()) {
+            return new ChatroomCreateDTO("Chatroom Name is blank");
+        }
+
+        if (MockDB.roomToMessageMap.containsKey(newChatroom)) {
+            return new ChatroomCreateDTO(newChatroom + " already exists");
+        }
+
+        if (!isChatroomNameValid(newChatroom)) {
+            return new ChatroomCreateDTO(newChatroom + " is not a valid name");
+        }
+
+        MockDB.roomToMessageMap.put(newChatroom, new ArrayList<>());
+        MockDB.roomToUsersMap.put(newChatroom, new HashSet<>());
+
+        return new ChatroomCreateDTO();
+    }
+
+    private boolean isChatroomNameValid(String chatroomName) {
+        if (chatroomName == null)
+            return false;
+        return chatroomName.matches("^[a-zA-Z0-9_-]{3,30}$");
+    }
+
     @SubscribeMapping("/setUsername/{newUsername}")
     public UsernameChangeDTO setUsername(@DestinationVariable String newUsername, SimpMessageHeaderAccessor headerAccessor) {
         // TODO - add checks to make sure user name is valid, not taken (and maybe it does not look similar to another e.g. capital i and lower case L)
