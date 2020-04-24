@@ -32,6 +32,11 @@ public class MessageController {
         return user.getMyChatrooms();
     }
 
+    @SubscribeMapping("/chatroomSuggestions")
+    public Set<String> getChatroomSuggestions(SimpMessageHeaderAccessor headerAccessor) {
+        return MockDB.roomToUsersMap.keySet();
+    }
+
     @SubscribeMapping("/chatroom/create/{newChatroom}")
     public ChatroomCreateDTO createNewChatroom(@DestinationVariable String newChatroom) {
         if (newChatroom == null || newChatroom.isEmpty()) {
