@@ -11,13 +11,14 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 
-import java.util.Set;
-
 @Component
 public class WebSocketEventListener {
 
     @Autowired
     private MessageController messageController;
+
+    @Autowired
+    private MockDB mockDB;
 
     @EventListener
     private void handleSessionConnected(SessionConnectEvent event) {
@@ -25,14 +26,7 @@ public class WebSocketEventListener {
         // TODO - might have to add logic to refresh sessionId in case it's old
         String sessionId = headerAccessor.getSessionAttributes().get("sessionId").toString();
 
-        InMemoryUser user;
-        if (!MockDB.sessionToUserMap.containsKey(sessionId)) {
-            user = new InMemoryUser(sessionId);
-            MockDB.sessionToUserMap.put(sessionId, user);
-        } else {
-            user = MockDB.sessionToUserMap.get(sessionId);
-        }
-
+        InMemoryUser user = mockDB.getInMemoryUser(sessionId, true);
         user.addSocketSessionIfNotExists(headerAccessor.getHeader("simpSessionId").toString());
     }
 
@@ -51,10 +45,10 @@ public class WebSocketEventListener {
 
         String chatroom = getChatroomFromDestination(headerAccessor.getDestination());
         if (chatroom != null) {
-            if (MockDB.roomToUsersMap.containsKey(chatroom)) {
+            if (mockDB.isExistingChatroom(chatroom)) {
                 String sessionId = headerAccessor.getSessionAttributes().get("sessionId").toString();
-                InMemoryUser user = MockDB.sessionToUserMap.get(sessionId);
-                MockDB.roomToUsersMap.get(chatroom).add(user);
+                InMemoryUser user = mockDB.getInMemoryUser(sessionId);
+                mockDB.addUserToChatroom(user, chatroom);
                 user.updateSocketChatroom(headerAccessor.getSessionId(), chatroom, headerAccessor.getSubscriptionId());
                 messageController.updateChatUsers(chatroom, user, UserChatroomEvent.JOIN);
             }
@@ -79,7 +73,7 @@ public class WebSocketEventListener {
     }
 
     private void disconnectSocket(String sessionId, String socketSessionId, String subscriptionId) {
-        InMemoryUser user = MockDB.sessionToUserMap.getOrDefault(sessionId, null);
+        InMemoryUser user = mockDB.getInMemoryUser(sessionId);
         if (user == null)
             return;
 
@@ -96,12 +90,10 @@ public class WebSocketEventListener {
 
         if (user.isChatroomInSocketSession(chatroom))
             return;
-        Set<InMemoryUser> usersInChatroom = MockDB.roomToUsersMap.getOrDefault(chatroom, null);
-        if (usersInChatroom != null) {
-            if (usersInChatroom.remove(user)) {
-                messageController.updateChatUsers(chatroom, user, UserChatroomEvent.LEAVE);
-            }
-        }
 
+        if (mockDB.isExistingChatroom(chatroom)) {
+            if (mockDB.removeUserFromChatroom(user, chatroom))
+                messageController.updateChatUsers(chatroom, user, UserChatroomEvent.LEAVE);
+        }
     }
 }
