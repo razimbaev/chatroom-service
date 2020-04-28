@@ -6,9 +6,7 @@ import com.mychatroom.chatroom.dto.MessageDTO;
 import com.mychatroom.chatroom.event.InMemoryUser;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ChatroomServiceImpl implements ChatroomService {
@@ -37,7 +35,8 @@ public class ChatroomServiceImpl implements ChatroomService {
                 continue;
             List<MessageDTO> messages = new ArrayList<>();
             ItemCollection<ScanOutcome> items = table.scan();
-            for (Item item : items) {
+            List<Item> sortedItems = getSortMessageItems(items);
+            for (Item item : sortedItems) {
                 MessageDTO message = new MessageDTO();
                 message.setContent(item.getString("messageContent"));
                 message.setUser(this.users.getOrDefault(item.getString("userId"), null));
@@ -96,5 +95,25 @@ public class ChatroomServiceImpl implements ChatroomService {
         List<KeySchemaElement> keySchema = new ArrayList<>();
         keySchema.add(new KeySchemaElement().withAttributeName("messageNumber").withKeyType(KeyType.HASH));
         return keySchema;
+    }
+
+    private List<Item> getSortMessageItems(ItemCollection<ScanOutcome> items) {
+        List<Item> sortedItems = new ArrayList<>();
+        for (Item item : items) {
+            sortedItems.add(item);
+        }
+        Collections.sort(sortedItems, new SortByMessageNumber());
+
+        return sortedItems;
+    }
+
+    private class SortByMessageNumber implements Comparator<Item> {
+
+        @Override
+        public int compare(Item x, Item y) {
+            long xVal = x.getLong("messageNumber");
+            long yVal = y.getLong("messageNumber");
+            return Long.compare(xVal, yVal);
+        }
     }
 }
