@@ -101,7 +101,7 @@ public class MessageController {
         for (String chatroom : user.getChatrooms())
             updateChatUsers(chatroom, previousUsername, newUsername);
 
-        mockDB.changeUsername(previousUsername, newUsername);
+        mockDB.changeUsername(previousUsername, newUsername, user);
         return new UsernameChangeDTO(previousUsername, newUsername,
                 "", user.getTimeWhenUsernameChangeAllowed());
     }
@@ -197,12 +197,13 @@ public class MessageController {
         if (username == null || username.isEmpty())
             throw new Exception("Messages should not be sent without a user");  // TODO - maybe find better way to handle this
         message.setUserId(username);    // prevent username spoofing
+        message.setUserSessionId(user.getUserSessionId());
 
         mockDB.addMessage(message, chatroomName);
 
         simpMessagingTemplate.convertAndSend("/topic/home/message", new MessageHomeDTO(message, chatroomName));
 
-        user.addToMyChatrooms(chatroomName);
+        mockDB.addChatroomToUsersChatrooms(user, chatroomName);
 
         return message;
     }

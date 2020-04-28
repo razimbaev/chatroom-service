@@ -98,12 +98,24 @@ public class InMemoryUser {
         return chatrooms;
     }
 
-    public void addToMyChatrooms(String chatroom) {
-        this.myChatrooms.add(chatroom);
+    public void setMyChatrooms(Set<String> chatrooms) {
+        this.myChatrooms = chatrooms;
+    }
+
+    public boolean addToMyChatrooms(String chatroom) {
+        return this.myChatrooms.add(chatroom);
     }
 
     public Set<String> getMyChatrooms() {
         return myChatrooms;
+    }
+
+    public long getLastTimeChangedUsername() {
+        return lastTimeChangedUsername;
+    }
+
+    public void setLastTimeChangedUsername(long lastTimeChangedUsername) {
+        this.lastTimeChangedUsername = lastTimeChangedUsername;
     }
 
     // TODO - check to make sure this equals and hashcode method is sufficient

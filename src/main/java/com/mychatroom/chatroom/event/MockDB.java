@@ -1,6 +1,9 @@
 package com.mychatroom.chatroom.event;
 
 import com.mychatroom.chatroom.dto.MessageDTO;
+import com.mychatroom.chatroom.service.ChatroomService;
+import com.mychatroom.chatroom.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -9,26 +12,42 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class MockDB {
 
+    private ChatroomService chatroomService;
+    private UserService userService;
+
     // TODO - for now assuming that sessionId is unique identifier for single user (as opposed to socket connection since user can have two tabs open)
     private Set<String> takenUsernames = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private Map<String, InMemoryUser> sessionToUserMap = new HashMap<>();
     private Map<String, Set<InMemoryUser>> roomToUsersMap = new HashMap<>();
     private Map<String, List<MessageDTO>> roomToMessageMap = new HashMap<>();
 
-    public MockDB() {
-        // temporarily hardcoded values
-        // TODO - LOAD FROM DB
-        String[] rooms = new String[]{"Corona", "France", "Swimming", "Economics"};
+    @Autowired
+    public MockDB(ChatroomService chatroomService, UserService userService) {
+        this.chatroomService = chatroomService;
+        this.userService = userService;
 
-        for (String room : rooms) {
-            roomToUsersMap.put(room, new HashSet<>());
-            roomToMessageMap.put(room, new ArrayList<>());
+        this.sessionToUserMap = this.userService.getUsers();
+        for (InMemoryUser user : this.sessionToUserMap.values()) {
+            if (user.getUsername() != null && !user.getUsername().isEmpty())
+                takenUsernames.add(user.getUsername());
+        }
+
+        this.roomToMessageMap = this.chatroomService.getChatroomMessages();
+        for (String room : this.roomToMessageMap.keySet()) {
+            this.roomToUsersMap.put(room, new HashSet<>());
+            for (MessageDTO message : this.roomToMessageMap.get(room)) {
+                if (this.sessionToUserMap.containsKey(message.getUserSessionId())) {
+                    String username = this.sessionToUserMap.get(message.getUserSessionId()).getUsername();
+                    message.setUserId(username);
+                }
+            }
         }
     }
 
-    public void changeUsername(String previousName, String newName) {
+    public void changeUsername(String previousName, String newName, InMemoryUser user) {
         this.takenUsernames.remove(previousName);
         this.takenUsernames.add(newName);
+        this.userService.updateUser(user);
     }
 
     public boolean isUsernameTaken(String username) {
@@ -43,6 +62,7 @@ public class MockDB {
         // TODO - SAVE TO DB
         user = new InMemoryUser(sessionId);
         this.sessionToUserMap.put(sessionId, user);
+        this.userService.saveUser(user);
         return user;
     }
 
@@ -55,9 +75,9 @@ public class MockDB {
     }
 
     public void createNewChatroom(String chatroom) {
-        // TODO - SAVE TO DB
         this.roomToUsersMap.put(chatroom, new HashSet<>());
         this.roomToMessageMap.put(chatroom, new ArrayList<>());
+        this.chatroomService.createChatroom(chatroom);
     }
 
     public int getNumUsersInChatroom(String chatroom) {
@@ -73,13 +93,11 @@ public class MockDB {
     }
 
     public void addUserToChatroom(InMemoryUser user, String chatroom) {
-        // TODO - SAVE TO DB
         if (this.isExistingChatroom(chatroom))
             this.roomToUsersMap.get(chatroom).add(user);
     }
 
     public boolean removeUserFromChatroom(InMemoryUser user, String chatroom) {
-        // TODO - SAVE TO DB
         if (this.isExistingChatroom(chatroom))
             return this.roomToUsersMap.get(chatroom).remove(user);
         return false;
@@ -90,9 +108,15 @@ public class MockDB {
     }
 
     public void addMessage(MessageDTO message, String chatroom) {
-        // TODO - SAVE TO DB
         if (this.isExistingChatroom(chatroom)) {
             this.roomToMessageMap.get(chatroom).add(message);
+            this.chatroomService.insertMessage(message, chatroom);
+        }
+    }
+
+    public void addChatroomToUsersChatrooms(InMemoryUser user, String chatroom) {
+        if (user.addToMyChatrooms(chatroom)) {
+            userService.updateUser(user);
         }
     }
 }
