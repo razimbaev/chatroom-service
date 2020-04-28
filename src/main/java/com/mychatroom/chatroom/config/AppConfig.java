@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 public class AppConfig {
     @Bean
     public ChatroomService chatroomService() {
-        return new ChatroomServiceImpl();
+        return new ChatroomServiceImpl(userService());
     }
 
     @Bean

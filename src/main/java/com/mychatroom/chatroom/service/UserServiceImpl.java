@@ -12,6 +12,7 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private DynamoDB dynamoDB;
+    private Map<String, InMemoryUser> users;
 
     @Override
     public void saveUser(InMemoryUser user) {
@@ -27,12 +28,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Map<String, InMemoryUser> getUsers() {
+        if (users != null)
+            return users;
         Map<String, InMemoryUser> users = new ConcurrentHashMap<>();
         ItemCollection<ScanOutcome> items = dynamoDB.getTable(USER_TABLE_NAME).scan();
         for (Item item : items) {
             InMemoryUser user = getUserFromItem(item);
             users.put(user.getUserSessionId(), user);
         }
+        this.users = users;
         return users;
     }
 

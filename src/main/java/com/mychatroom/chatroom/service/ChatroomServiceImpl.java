@@ -3,6 +3,7 @@ package com.mychatroom.chatroom.service;
 import com.amazonaws.services.dynamodbv2.document.*;
 import com.amazonaws.services.dynamodbv2.model.*;
 import com.mychatroom.chatroom.dto.MessageDTO;
+import com.mychatroom.chatroom.event.InMemoryUser;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
@@ -14,8 +15,15 @@ public class ChatroomServiceImpl implements ChatroomService {
 
     private Map<String, Long> chatroomToMessageNumber = new ConcurrentHashMap<>();
 
+    private Map<String, InMemoryUser> users;
+
     @Autowired
     private DynamoDB dynamoDB;
+
+    @Autowired
+    public ChatroomServiceImpl(UserService userService) {
+        users = userService.getUsers();
+    }
 
     @Override
     public Map<String, List<MessageDTO>> getChatroomMessages() {
@@ -32,7 +40,7 @@ public class ChatroomServiceImpl implements ChatroomService {
             for (Item item : items) {
                 MessageDTO message = new MessageDTO();
                 message.setContent(item.getString("messageContent"));
-                message.setUserSessionId(item.getString("userId"));
+                message.setUser(this.users.getOrDefault(item.getString("userId"), null));
                 messages.add(message);
             }
 

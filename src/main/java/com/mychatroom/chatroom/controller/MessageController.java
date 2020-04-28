@@ -196,8 +196,7 @@ public class MessageController {
         String username = user.getUsername();
         if (username == null || username.isEmpty())
             throw new Exception("Messages should not be sent without a user");  // TODO - maybe find better way to handle this
-        message.setUserId(username);    // prevent username spoofing
-        message.setUserSessionId(user.getUserSessionId());
+        message.setUser(user);
 
         mockDB.addMessage(message, chatroomName);
 

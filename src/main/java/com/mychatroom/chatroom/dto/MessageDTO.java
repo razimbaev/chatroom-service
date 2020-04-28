@@ -1,21 +1,18 @@
 package com.mychatroom.chatroom.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.mychatroom.chatroom.event.InMemoryUser;
 
 public class MessageDTO {
     private String content;
-    private String userId;
+    private InMemoryUser user;
     private long timestamp;
-
-    @JsonIgnore
-    private String userSessionId;
 
     public MessageDTO() {
     }
 
-    public MessageDTO(String content, String userId) {
+    public MessageDTO(String content) {
         this.content = content;
-        this.userId = userId;
     }
 
     public void setContent(String content) {
@@ -26,23 +23,24 @@ public class MessageDTO {
         return content;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public String getUserId() {
+        if (this.user == null)
+            return "";
+        return this.user.getUsername();
     }
 
-    public String getUserId() {
-        return userId;
+    @JsonIgnore
+    public String getUserSessionId() {
+        if (this.user == null)
+            return "";
+        return user.getUserSessionId();
     }
 
     public long getTimestamp() {
         return timestamp;
     }
 
-    public String getUserSessionId() {
-        return userSessionId;
-    }
-
-    public void setUserSessionId(String userSessionId) {
-        this.userSessionId = userSessionId;
+    public void setUser(InMemoryUser user) {
+        this.user = user;
     }
 }

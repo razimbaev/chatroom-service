@@ -17,9 +17,9 @@ public class MockDB {
 
     // TODO - for now assuming that sessionId is unique identifier for single user (as opposed to socket connection since user can have two tabs open)
     private Set<String> takenUsernames = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private Map<String, InMemoryUser> sessionToUserMap = new HashMap<>();
+    private Map<String, InMemoryUser> sessionToUserMap;
     private Map<String, Set<InMemoryUser>> roomToUsersMap = new HashMap<>();
-    private Map<String, List<MessageDTO>> roomToMessageMap = new HashMap<>();
+    private Map<String, List<MessageDTO>> roomToMessageMap;
 
     @Autowired
     public MockDB(ChatroomService chatroomService, UserService userService) {
@@ -35,12 +35,6 @@ public class MockDB {
         this.roomToMessageMap = this.chatroomService.getChatroomMessages();
         for (String room : this.roomToMessageMap.keySet()) {
             this.roomToUsersMap.put(room, new HashSet<>());
-            for (MessageDTO message : this.roomToMessageMap.get(room)) {
-                if (this.sessionToUserMap.containsKey(message.getUserSessionId())) {
-                    String username = this.sessionToUserMap.get(message.getUserSessionId()).getUsername();
-                    message.setUserId(username);
-                }
-            }
         }
     }
 
@@ -59,7 +53,6 @@ public class MockDB {
         if (!createIfNotExists || user != null)
             return user;
 
-        // TODO - SAVE TO DB
         user = new InMemoryUser(sessionId);
         this.sessionToUserMap.put(sessionId, user);
         this.userService.saveUser(user);
