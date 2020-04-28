@@ -31,9 +31,10 @@ public class InMemoryUser {
     }
 
     public boolean setUsername(String username) {
-        if (!this.isUsernameChangedMoreThanDayAgo()) {
-            return false;
-        }
+        // TODO - (if needed) uncomment below to prevent user from changing username more than once a day
+//        if (!this.isUsernameChangedMoreThanDayAgo()) {
+//            return false;
+//        }
         this.username = username;
         this.lastTimeChangedUsername = System.currentTimeMillis();
         return true;
