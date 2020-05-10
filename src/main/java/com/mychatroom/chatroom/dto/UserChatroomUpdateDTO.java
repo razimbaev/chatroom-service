@@ -1,29 +1,32 @@
 package com.mychatroom.chatroom.dto;
 
+import com.mychatroom.chatroom.event.InMemoryUser;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 public class UserChatroomUpdateDTO {
-    private String previousName, currentName;
-    private UserChatroomEvent event;
+    private Set<String> users;
+    private Map<String, String> modifiedUsernames;
 
-    public UserChatroomUpdateDTO(String previousName, String currentName) {
-        this.previousName = previousName;
-        this.currentName = currentName;
-        this.event = UserChatroomEvent.CHANGE_USERNAME;
+    public UserChatroomUpdateDTO(Set<InMemoryUser> inMemoryUsers) {
+        users = new HashSet<>();
+        for (InMemoryUser user : inMemoryUsers) {
+            users.add(user.getUsername());
+        }
     }
 
-    public UserChatroomUpdateDTO(String currentName, UserChatroomEvent event) {
-        this.currentName = currentName;
-        this.event = event;
+    public UserChatroomUpdateDTO(Set<InMemoryUser> inMemoryUsers, Map<String, String> modifiedUsernames) {
+        this(inMemoryUsers);
+        this.modifiedUsernames = modifiedUsernames;
     }
 
-    public String getPreviousName() {
-        return previousName;
+    public Set<String> getUsers() {
+        return users;
     }
 
-    public String getCurrentName() {
-        return currentName;
-    }
-
-    public UserChatroomEvent getEvent() {
-        return event;
+    public Map<String, String> getModifiedUsernames() {
+        return modifiedUsernames;
     }
 }

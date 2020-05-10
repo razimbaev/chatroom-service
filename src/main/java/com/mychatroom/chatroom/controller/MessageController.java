@@ -12,9 +12,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Controller
 public class MessageController {
@@ -118,17 +116,23 @@ public class MessageController {
         return username.matches("^[a-zA-Z0-9_-]{3,20}$");
     }
 
-    public void updateChatUsers(String chatroomName, InMemoryUser user, UserChatroomEvent event) {
+    public void updateChatUsers(String chatroomName, String previousName, String newName) {
+        Set<InMemoryUser> users = mockDB.getUsersInChatroom(chatroomName);
+        Map<String, String> changed = new HashMap<>();
+        changed.put(previousName, newName);
+
         this.simpMessagingTemplate.convertAndSend("/topic/chatroom/" + chatroomName + "/users",
-                new UserChatroomUpdateDTO(user.getUsername(), event));
+                new UserChatroomUpdateDTO(users, changed));
+    }
+
+    public void updateChatUsers(String chatroomName) {
+        Set<InMemoryUser> users = mockDB.getUsersInChatroom(chatroomName);
+
+        this.simpMessagingTemplate.convertAndSend("/topic/chatroom/" + chatroomName + "/users",
+                new UserChatroomUpdateDTO(users));
 
         int numUsers = mockDB.getNumUsersInChatroom(chatroomName);
         simpMessagingTemplate.convertAndSend("/topic/home/user", new UserHomeDTO(chatroomName, numUsers));
-    }
-
-    public void updateChatUsers(String chatroomName, String oldName, String newName) {
-        this.simpMessagingTemplate.convertAndSend("/topic/chatroom/" + chatroomName + "/users",
-                new UserChatroomUpdateDTO(oldName, newName));
     }
 
     @SubscribeMapping("/home/init")

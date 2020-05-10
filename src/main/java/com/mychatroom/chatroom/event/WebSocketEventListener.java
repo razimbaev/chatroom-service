@@ -1,7 +1,6 @@
 package com.mychatroom.chatroom.event;
 
 import com.mychatroom.chatroom.controller.MessageController;
-import com.mychatroom.chatroom.dto.UserChatroomEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -50,7 +49,7 @@ public class WebSocketEventListener {
                 InMemoryUser user = mockDB.getInMemoryUser(sessionId);
                 mockDB.addUserToChatroom(user, chatroom);
                 user.updateSocketChatroom(headerAccessor.getSessionId(), chatroom, headerAccessor.getSubscriptionId());
-                messageController.updateChatUsers(chatroom, user, UserChatroomEvent.JOIN);
+                messageController.updateChatUsers(chatroom);
             }
         }
     }
@@ -93,7 +92,7 @@ public class WebSocketEventListener {
 
         if (mockDB.isExistingChatroom(chatroom)) {
             if (mockDB.removeUserFromChatroom(user, chatroom))
-                messageController.updateChatUsers(chatroom, user, UserChatroomEvent.LEAVE);
+                messageController.updateChatUsers(chatroom);
         }
     }
 }
