@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class MockDB {
+public class ApplicationState {
 
     private ChatroomService chatroomService;
     private UserService userService;
@@ -22,7 +22,7 @@ public class MockDB {
     private Map<String, List<MessageDTO>> roomToMessageMap;
 
     @Autowired
-    public MockDB(ChatroomService chatroomService, UserService userService) {
+    public ApplicationState(ChatroomService chatroomService, UserService userService) {
         this.chatroomService = chatroomService;
         this.userService = userService;
 

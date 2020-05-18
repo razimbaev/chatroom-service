@@ -1,8 +1,8 @@
 package com.mychatroom.chatroom.controller;
 
 import com.mychatroom.chatroom.dto.*;
+import com.mychatroom.chatroom.event.ApplicationState;
 import com.mychatroom.chatroom.event.InMemoryUser;
-import com.mychatroom.chatroom.event.MockDB;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -20,21 +20,21 @@ public class MessageController {
     private SimpMessagingTemplate simpMessagingTemplate;
 
     @Autowired
-    private MockDB mockDB;
+    private ApplicationState applicationState;
 
     // TODO - maybe add pagination where needed and consider using SimpUserRegistry
 
     @SubscribeMapping("/mychatrooms")
     public Set<String> getMyChatrooms(SimpMessageHeaderAccessor headerAccessor) {
         String sessionId = headerAccessor.getSessionAttributes().get("sessionId").toString();
-        InMemoryUser user = mockDB.getInMemoryUser(sessionId);
+        InMemoryUser user = applicationState.getInMemoryUser(sessionId);
 
         return user.getMyChatrooms();
     }
 
     @SubscribeMapping("/chatroomSuggestions")
     public Set<String> getChatroomSuggestions(SimpMessageHeaderAccessor headerAccessor) {
-        return mockDB.getChatrooms();
+        return applicationState.getChatrooms();
     }
 
     @SubscribeMapping("/chatroom/create/{newChatroom}")
@@ -43,7 +43,7 @@ public class MessageController {
             return new ChatroomCreateDTO("Chatroom Name is blank");
         }
 
-        if (mockDB.isExistingChatroom(newChatroom)) {
+        if (applicationState.isExistingChatroom(newChatroom)) {
             return new ChatroomCreateDTO(newChatroom + " already exists");
         }
 
@@ -51,7 +51,7 @@ public class MessageController {
             return new ChatroomCreateDTO(newChatroom + " is not a valid name");
         }
 
-        mockDB.createNewChatroom(newChatroom);
+        applicationState.createNewChatroom(newChatroom);
 
         simpMessagingTemplate.convertAndSend("/topic/home/chatroom", new ChatroomHomeDTO(newChatroom));
 
@@ -71,7 +71,7 @@ public class MessageController {
         // TODO - also do not allow users to rapidly change username over and over
 
         String sessionId = headerAccessor.getSessionAttributes().get("sessionId").toString();
-        InMemoryUser user = mockDB.getInMemoryUser(sessionId);
+        InMemoryUser user = applicationState.getInMemoryUser(sessionId);
         String previousUsername = user.getUsername();
 
         if (newUsername == null || newUsername.isEmpty()) {
@@ -99,7 +99,7 @@ public class MessageController {
         for (String chatroom : user.getChatrooms())
             updateChatUsers(chatroom, previousUsername, newUsername);
 
-        mockDB.changeUsername(previousUsername, newUsername, user);
+        applicationState.changeUsername(previousUsername, newUsername, user);
         return new UsernameChangeDTO(previousUsername, newUsername,
                 "", user.getTimeWhenUsernameChangeAllowed());
     }
@@ -107,7 +107,7 @@ public class MessageController {
     private boolean isUsernameTaken(String username) {
         if (username == null)
             return false;
-        return mockDB.isUsernameTaken(username);
+        return applicationState.isUsernameTaken(username);
     }
 
     private boolean isUsernameValid(String username) {
@@ -117,7 +117,7 @@ public class MessageController {
     }
 
     public void updateChatUsers(String chatroomName, String previousName, String newName) {
-        Set<InMemoryUser> users = mockDB.getUsersInChatroom(chatroomName);
+        Set<InMemoryUser> users = applicationState.getUsersInChatroom(chatroomName);
         Map<String, String> changed = new HashMap<>();
         changed.put(previousName, newName);
 
@@ -126,12 +126,12 @@ public class MessageController {
     }
 
     public void updateChatUsers(String chatroomName) {
-        Set<InMemoryUser> users = mockDB.getUsersInChatroom(chatroomName);
+        Set<InMemoryUser> users = applicationState.getUsersInChatroom(chatroomName);
 
         this.simpMessagingTemplate.convertAndSend("/topic/chatroom/" + chatroomName + "/users",
                 new UserChatroomUpdateDTO(users));
 
-        int numUsers = mockDB.getNumUsersInChatroom(chatroomName);
+        int numUsers = applicationState.getNumUsersInChatroom(chatroomName);
         simpMessagingTemplate.convertAndSend("/topic/home/user", new UserHomeDTO(chatroomName, numUsers));
     }
 
@@ -139,10 +139,10 @@ public class MessageController {
     public List<ChatroomHomeDTO> getAllChatrooms() {
         List<ChatroomHomeDTO> chatroomHomeData = new ArrayList<>();
 
-        Set<String> chatrooms = mockDB.getChatrooms();
+        Set<String> chatrooms = applicationState.getChatrooms();
         for (String chatroom : chatrooms) {
-            int numUser = mockDB.getNumUsersInChatroom(chatroom);
-            List<MessageDTO> messages = mockDB.getMessages(chatroom);
+            int numUser = applicationState.getNumUsersInChatroom(chatroom);
+            List<MessageDTO> messages = applicationState.getMessages(chatroom);
             chatroomHomeData.add(new ChatroomHomeDTO(chatroom, numUser, messages));
         }
         return chatroomHomeData;
@@ -151,10 +151,10 @@ public class MessageController {
     @SubscribeMapping("/chatroom/{chatroomName}/init")
     public ChatInitDTO initChatroomData(@DestinationVariable String chatroomName, SimpMessageHeaderAccessor headerAccessor) {
         // TODO - add some sort of way to pass in what the latest message the user already has (so chat can be cached on UI)
-        List<MessageDTO> messages = mockDB.getMessages(chatroomName);
+        List<MessageDTO> messages = applicationState.getMessages(chatroomName);
 
         String sessionId = headerAccessor.getSessionAttributes().get("sessionId").toString();
-        InMemoryUser user = mockDB.getInMemoryUser(sessionId);
+        InMemoryUser user = applicationState.getInMemoryUser(sessionId);
 
         ChatInitDTO chatInitDTO = new ChatInitDTO();
         chatInitDTO.setMessages(messages);
@@ -167,7 +167,7 @@ public class MessageController {
     private List<String> getUserUpdatesInChatroom(String chatroom) {
         List<String> usernames = new ArrayList<>();
 
-        Set<InMemoryUser> users = mockDB.getUsersInChatroom(chatroom);
+        Set<InMemoryUser> users = applicationState.getUsersInChatroom(chatroom);
         if (users == null)
             return usernames;
 
@@ -181,7 +181,7 @@ public class MessageController {
     private List<String> getUsersInChatroom(String chatroom) {
         List<String> usernames = new ArrayList<>();
 
-        Set<InMemoryUser> users = mockDB.getUsersInChatroom(chatroom);
+        Set<InMemoryUser> users = applicationState.getUsersInChatroom(chatroom);
         if (users == null)
             return usernames;
 
@@ -196,17 +196,17 @@ public class MessageController {
     @SendTo("/topic/chatroom/{chatroomName}")
     public MessageDTO sendMessage(@DestinationVariable String chatroomName, MessageDTO message, SimpMessageHeaderAccessor headerAccessor) throws Exception {
         String sessionId = headerAccessor.getSessionAttributes().get("sessionId").toString();
-        InMemoryUser user = mockDB.getInMemoryUser(sessionId);
+        InMemoryUser user = applicationState.getInMemoryUser(sessionId);
         String username = user.getUsername();
         if (username == null || username.isEmpty())
             throw new Exception("Messages should not be sent without a user");  // TODO - maybe find better way to handle this
         message.setUser(user);
 
-        mockDB.addMessage(message, chatroomName);
+        applicationState.addMessage(message, chatroomName);
 
         simpMessagingTemplate.convertAndSend("/topic/home/message", new MessageHomeDTO(message, chatroomName));
 
-        mockDB.addChatroomToUsersChatrooms(user, chatroomName);
+        applicationState.addChatroomToUsersChatrooms(user, chatroomName);
 
         return message;
     }

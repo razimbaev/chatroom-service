@@ -17,7 +17,7 @@ public class WebSocketEventListener {
     private MessageController messageController;
 
     @Autowired
-    private MockDB mockDB;
+    private ApplicationState applicationState;
 
     @EventListener
     private void handleSessionConnected(SessionConnectEvent event) {
@@ -25,7 +25,7 @@ public class WebSocketEventListener {
         // TODO - might have to add logic to refresh sessionId in case it's old
         String sessionId = headerAccessor.getSessionAttributes().get("sessionId").toString();
 
-        InMemoryUser user = mockDB.getInMemoryUser(sessionId, true);
+        InMemoryUser user = applicationState.getInMemoryUser(sessionId, true);
         user.addSocketSessionIfNotExists(headerAccessor.getHeader("simpSessionId").toString());
     }
 
@@ -44,10 +44,10 @@ public class WebSocketEventListener {
 
         String chatroom = getChatroomFromDestination(headerAccessor.getDestination());
         if (chatroom != null) {
-            if (mockDB.isExistingChatroom(chatroom)) {
+            if (applicationState.isExistingChatroom(chatroom)) {
                 String sessionId = headerAccessor.getSessionAttributes().get("sessionId").toString();
-                InMemoryUser user = mockDB.getInMemoryUser(sessionId);
-                mockDB.addUserToChatroom(user, chatroom);
+                InMemoryUser user = applicationState.getInMemoryUser(sessionId);
+                applicationState.addUserToChatroom(user, chatroom);
                 user.updateSocketChatroom(headerAccessor.getSessionId(), chatroom, headerAccessor.getSubscriptionId());
                 messageController.updateChatUsers(chatroom);
             }
@@ -72,7 +72,7 @@ public class WebSocketEventListener {
     }
 
     private void disconnectSocket(String sessionId, String socketSessionId, String subscriptionId) {
-        InMemoryUser user = mockDB.getInMemoryUser(sessionId);
+        InMemoryUser user = applicationState.getInMemoryUser(sessionId);
         if (user == null)
             return;
 
@@ -90,8 +90,8 @@ public class WebSocketEventListener {
         if (user.isChatroomInSocketSession(chatroom))
             return;
 
-        if (mockDB.isExistingChatroom(chatroom)) {
-            if (mockDB.removeUserFromChatroom(user, chatroom))
+        if (applicationState.isExistingChatroom(chatroom)) {
+            if (applicationState.removeUserFromChatroom(user, chatroom))
                 messageController.updateChatUsers(chatroom);
         }
     }
